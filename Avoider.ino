@@ -15,17 +15,13 @@
 #define TURN_DELAY 350
 #define SERVO_SPEED 0.1/60 // SG90 TowerPro angular speed
 
-// Accelerometer
-const int groundpin = 18;             // analog input pin 4 -- ground
-const int zpin = A1;                  // z-axis
+#define Z_PIN A1 // Accelerometer z-axis
 
 Servo servo; // create servo object to control a Servo
 
 unsigned long dist_fwd, left_dist, right_dist; // Distance measured
 
 void setup() {
-  pinMode(groundpin, OUTPUT);
-  digitalWrite(groundpin, LOW);  
   servo.attach(SERVO_PIN);
   servo.write(CENTER_POS);
 
@@ -44,11 +40,11 @@ void setup() {
   Serial.println("Starting...");
   
   halt();
-  delay(4000);
+  delay(4000); // Delay time to put the robot in place
 }
 
 void loop() {    
-  // Get a reading from the current sensor direction
+  // Get a reading from the sensor
   dist_fwd = get_distance();
 
   // Go forward while nothing is in the distance sensors read area
@@ -63,7 +59,7 @@ void loop() {
   }
 }
 
-// Measure distance find a new path
+// Measure distance and find a new path
 void find_path() {
   halt();
   for (int pos = CENTER_POS; pos >= 0; pos -= 1) {
@@ -90,8 +86,8 @@ void find_path() {
 
 // Read the HC-SR04 uSonic sensor and calculates the distance
 unsigned long get_distance() {
-  // The PING is triggered by a HIGH pulse of 2 or more microseconds.
-  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  // The PING is triggered by a HIGH pulse of 2 or more microseconds
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse
   digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
 
@@ -100,7 +96,8 @@ unsigned long get_distance() {
   delayMicroseconds(5);
   digitalWrite(TRIGGER_PIN, LOW);
 
-  // Reads the echoPin, returns the sound wave travel time in microseconds
+  // Reads the echoPin, returns the microseconds it takes 
+  // the sound wave to travel
   unsigned long duration = pulseIn(ECHO_PIN, HIGH);
 
   // Calculate the distance
@@ -174,10 +171,8 @@ void go_forward() {
 }
 
 boolean is_accelerating(){  
-  int z_axis = analogRead(zpin);
-  delay(100);
-  Serial.println(z_axis);
-  
+  int z_axis = analogRead(Z_PIN);
+  delay(100);  
   return z_axis > 18 ? true : false;
 }
 
