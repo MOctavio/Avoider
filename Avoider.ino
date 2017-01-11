@@ -16,7 +16,7 @@
 #define CENTER_POS 80 // usually 90deg, set in 80 to adjust the physical servo position
 #define SERVO_SPEED 0.1/60 // SG90 TowerPro angular speed
 
-#define Z_PIN A1 // Accelerometer y-axis
+#define Z_PIN A1 // Accelerometer z-axis
 
 Servo servo; // create servo object to control a Servo
 
