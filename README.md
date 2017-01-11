@@ -11,3 +11,5 @@ This project allows you to build an autonomous vehicle that will avoid objects.
 * DIY Car chassis
 
 ![Circuit Sketch](https://github.com/MOctavio/object-avoider/blob/master/circuit_sketch_bb.png?raw=true "Circuit Sketch")
+
+Circuit image developed using [Fritzing](http://www.fritzing.org/).
