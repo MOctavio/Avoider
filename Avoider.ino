@@ -9,9 +9,9 @@
 #define ACTION_DIST 20
 #define MIN_ACTION_DIST 10
 
-#define SPEED_A 130
-#define SPEED_B 115
-#define TURN_DELAY 650
+#define SPEED_A 115
+#define SPEED_B 112
+#define TURN_DELAY 450
 
 #define CENTER_POS 80 // usually 90deg, set in 80 to adjust the physical servo position
 #define SERVO_SPEED 0.1/60 // SG90 TowerPro angular speed
@@ -24,6 +24,7 @@ unsigned long left_dist, right_dist; // Distance measured
 int sensor_max = 0; // maximum acceleration
 boolean initial_acceleration = false;
 boolean constant_acceleration = false;
+boolean calibrating = true;
 
 void setup() {
   servo.attach(SERVO_PIN);
@@ -43,46 +44,51 @@ void setup() {
   halt();
   delay(2000);
   Serial.begin(9600);
-  Serial.println("Starting...");
+  Serial.println("Hi, I'm Antonio");
+  Serial.println("Let's ride!");
   go_forward();
-  delay(650); // gives time for the vehicle to be in motion before calibration
   calibrate();
 }
 
 // calibrate during the first 3 seconds
 // and record the maximum sensor value
-void calibrate(){
+void calibrate() {
+  Serial.println("Starting calibration...");
+  delay(750); // to avoid initial bump
   int sensor_value = 0; // the sensor value
   while (millis() < 3000) {
     sensor_value = analogRead(Z_PIN);
     if (sensor_value > sensor_max) {
       sensor_max = sensor_value;
     }
-  }  
-  sensor_max = sensor_max - (((float)sensor_max/100) * 10);
-  
+  }
+  // Max sensor read less 10% margin
+  sensor_max = sensor_max - (((float)sensor_max / 100) * 10);
+  calibrating = false;
   Serial.print("Sensor Max: ");
   Serial.println(sensor_max);
 }
+
 void loop() {
+  if (calibrating)return;
+
   // Get a reading from the sensor
   int dist_fwd = get_distance();
   boolean acceleration = is_accelerating();
-  
-  if(acceleration &&
-    (dist_fwd > ACTION_DIST)){
+
+  if (acceleration &&
+      (dist_fwd > ACTION_DIST)) {
     go_forward();
     return;
   }
-   
-  if(!acceleration ||
-    dist_fwd <= MIN_ACTION_DIST){
+
+  if (!acceleration ||
+      dist_fwd <= MIN_ACTION_DIST) {
     halt();
     go_backward();
     delay(750);
     find_path();
     go_forward();
-    delay(650);
     return;
   }
 }
@@ -94,53 +100,53 @@ boolean is_accelerating() {
     z_axis = analogRead(Z_PIN);
     sensor_value += z_axis;
   }
-  sensor_value = sensor_value/10;
-  
-  if (initial_acceleration && 
-    constant_acceleration &&
-    sensor_value > sensor_max) {
+  sensor_value = sensor_value / 10;
+
+  if (initial_acceleration &&
+      constant_acceleration &&
+      sensor_value > sensor_max) {
     Serial.println("Road block!");
     Serial.println(sensor_value);
     return false;
   }
-  if (sensor_value > sensor_max && 
-    !initial_acceleration) {
+  if (sensor_value > sensor_max &&
+      !initial_acceleration) {
     Serial.println("Accelerating");
     Serial.println(sensor_value);
     initial_acceleration = true;
     return true;
   }
-  if (!constant_acceleration && 
-    initial_acceleration &&
-    sensor_value <= sensor_max) {      
+  if (!constant_acceleration &&
+      initial_acceleration &&
+      sensor_value <= sensor_max) {
     Serial.println("Constant acceleration");
     Serial.println(sensor_value);
     constant_acceleration = true;
     return true;
   }
-  
+
   return true;
 }
 
 // Measure distance and find a new path
 void find_path() {
+  // make it stop first
   halt();
-
+  // Look to the left
   for (int pos = CENTER_POS; pos <= 160; pos++) {
     servo.write(pos);
     delay(1000 * SERVO_SPEED);
   }
-  left_dist = get_distance(); // Look to the left
+  left_dist = get_distance();
   delay(TURN_DELAY);
-  
+  //Look to the right
   for (int pos = 160; pos >= 0; pos--) {
     servo.write(pos);
     delay(1000 * SERVO_SPEED);
   }
-  right_dist = get_distance(); //Look to the right
+  right_dist = get_distance();
   delay(TURN_DELAY);
-
-  // Set the servo back to the center pos
+  // Set the servo back to the center position
   for (int pos = 0; pos <= CENTER_POS; pos++) {
     servo.write(pos);
     delay(1000 * SERVO_SPEED);
@@ -148,7 +154,7 @@ void find_path() {
   turn();
 }
 
-// Read the HC-SR04 uSonic sensor and calculates the distance
+// Read the HC-SR04 uSonic sensor and calculates the distance in cm
 unsigned long get_distance() {
   // The PING is triggered by a HIGH pulse of 2 or more microseconds
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse
@@ -160,7 +166,7 @@ unsigned long get_distance() {
   delayMicroseconds(5);
   digitalWrite(TRIGGER_PIN, LOW);
 
-  // Reads the echoPin, returns the microseconds it takes 
+  // Reads the echoPin, returns the microseconds it takes
   // the sound wave to travel
   unsigned long duration = pulseIn(ECHO_PIN, HIGH);
 
@@ -176,18 +182,18 @@ unsigned long get_distance() {
 }
 
 // Engage the motor breaks
-void halt() {  
+void halt() {
   // reset acceleration status
   initial_acceleration = false;
   constant_acceleration = false;
-  
+
   digitalWrite(9, HIGH); //Engage the Brake for Channel A
   digitalWrite(8, HIGH); //Engage the Brake for Channel B
 }
 
 // Turns on the max distance
 void turn() {
-  (left_dist >= right_dist) ? go_left(): go_right();
+  (left_dist >= right_dist) ? go_left() : go_right();
 }
 
 void go_left() {
